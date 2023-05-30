@@ -4,7 +4,7 @@ pragma solidity ^0.8.15;
 import {Vm} from "forge-std/Vm.sol";
 import {DSTest} from "ds-test/test.sol";
 import {KasbeelSoulbound} from "../src/KasbeelSoulbound.sol";
-import {DummyMetadataRenderer} from "./utils/DummyMetadataRenderer.sol";
+import {DropMetadataRenderer} from "../src/metadata/DropMetadataRenderer.sol";
 import {IERC721A} from "lib/ERC721A/contracts/IERC721A.sol";
 import {IERC2981, IERC165} from "lib/openzeppelin-contracts/contracts/interfaces/IERC2981.sol";
 import {IOwnable} from "../src/interfaces/IOwnable.sol";
@@ -12,7 +12,7 @@ import {IOwnable} from "../src/interfaces/IOwnable.sol";
 contract KasbeelSoulboundTest is DSTest {
     KasbeelSoulbound public kasbeelSoulbound;
     Vm public constant vm = Vm(HEVM_ADDRESS);
-    DummyMetadataRenderer public dummyRenderer = new DummyMetadataRenderer();
+    DropMetadataRenderer public dummyRenderer = new DropMetadataRenderer();
     address public constant DEFAULT_OWNER_ADDRESS = address(0x23499);
     address payable public constant DEFAULT_MINTER_ADDRESS =
         payable(address(0x111));
@@ -24,7 +24,7 @@ contract KasbeelSoulboundTest is DSTest {
             _airdropRecipient: DEFAULT_MINTER_ADDRESS,
             _initialOwner: DEFAULT_OWNER_ADDRESS,
             _metadataRenderer: dummyRenderer,
-            _initData: bytes(" ")
+            _tokenURI: "ipfs://kasbeelCid"
         });
     }
 
@@ -55,6 +55,6 @@ contract KasbeelSoulboundTest is DSTest {
     }
 
     function test_TokenURI() public {
-        assertEq(kasbeelSoulbound.tokenURI(1), "DUMMY");
+        assertEq(kasbeelSoulbound.tokenURI(1), "ipfs://kasbeelCid?1");
     }
 }

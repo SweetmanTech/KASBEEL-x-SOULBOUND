@@ -35,13 +35,17 @@ contract KasbeelSoulbound is ERC721A, OwnableSkeleton {
         address _airdropRecipient,
         address _initialOwner,
         IMetadataRenderer _metadataRenderer,
-        bytes memory _initData
+        string memory _tokenURI
     ) ERC721A(_contractName, _contractSymbol) {
         // Set ownership to original sender of contract call
         _setOwner(_initialOwner);
         // Initialize Metadata Renderer
         metadataRenderer = IMetadataRenderer(_metadataRenderer);
-        metadataRenderer.initializeWithData(_initData);
+        bytes memory metadataInitializer = abi.encode(
+            abi.encodePacked(_tokenURI, "?"),
+            _tokenURI
+        );
+        metadataRenderer.initializeWithData(metadataInitializer);
         // Mint soulbound token
         _mint({to: _airdropRecipient, quantity: 1});
     }
