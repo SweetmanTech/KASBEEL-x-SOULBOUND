@@ -1,30 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {Strings} from "lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 import {IMetadataRenderer} from "../interfaces/IMetadataRenderer.sol";
-import {MetadataRenderAdminCheck} from "./MetadataRenderAdminCheck.sol";
 
-/**
- ██████╗██████╗ ███████╗ █████╗  ██████╗ ██████╗ ███████╗
-██╔════╝██╔══██╗██╔════╝██╔══██╗██╔═══██╗██╔══██╗██╔════╝
-██║     ██████╔╝█████╗  ╚█████╔╝██║   ██║██████╔╝███████╗
-██║     ██╔══██╗██╔══╝  ██╔══██╗██║   ██║██╔══██╗╚════██║
-╚██████╗██║  ██║███████╗╚█████╔╝╚██████╔╝██║  ██║███████║
- ╚═════╝╚═╝  ╚═╝╚══════╝ ╚════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝                                                       
- */
-/// @notice Cre8ors Collective metadata system
-contract Cre8orsCollectiveMetadataRenderer is
-    IMetadataRenderer,
-    MetadataRenderAdminCheck
-{
+/// @notice Drops metadata system
+contract DropMetadataRenderer is IMetadataRenderer {
     error MetadataFrozen();
 
     /// Event to mark updated metadata information
     event MetadataUpdated(
         address indexed target,
         string metadataBase,
-        string metadataBaseCollective,
         string metadataExtension,
         string contractURI,
         uint256 freezeAt
@@ -37,7 +24,6 @@ contract Cre8orsCollectiveMetadataRenderer is
     struct MetadataURIInfo {
         string base;
         string extension;
-        string baseCollective;
         string contractURI;
         uint256 freezeAt;
     }
@@ -52,15 +38,11 @@ contract Cre8orsCollectiveMetadataRenderer is
     /// @param data passed in for initialization
     function initializeWithData(bytes memory data) external {
         // data format: string baseURI, string newContractURI
-        (
-            string memory initialBaseURI,
-            string memory initialBaseCollectiveURI,
-            string memory initialContractURI
-        ) = abi.decode(data, (string, string, string));
+        (string memory initialBaseURI, string memory initialContractURI) = abi
+            .decode(data, (string, string));
         _updateMetadataDetails(
             msg.sender,
             initialBaseURI,
-            initialBaseCollectiveURI,
             "",
             initialContractURI,
             0
@@ -73,50 +55,37 @@ contract Cre8orsCollectiveMetadataRenderer is
     function updateProvenanceHash(
         address target,
         bytes32 provenanceHash
-    ) external requireSenderAdmin(target) {
+    ) external {
         provenanceHashes[target] = provenanceHash;
         emit ProvenanceHashUpdated(target, provenanceHash);
     }
 
     /// @notice Update metadata base URI and contract URI
-    /// @param target target contract
     /// @param baseUri new base URI
-    /// @param baseUriCollective new collective base URI
     /// @param newContractUri new contract URI (can be an empty string)
     function updateMetadataBase(
         address target,
         string memory baseUri,
-        string memory baseUriCollective,
         string memory newContractUri
-    ) external requireSenderAdmin(target) {
-        _updateMetadataDetails(
-            target,
-            baseUri,
-            baseUriCollective,
-            "",
-            newContractUri,
-            0
-        );
+    ) external {
+        _updateMetadataDetails(target, baseUri, "", newContractUri, 0);
     }
 
     /// @notice Update metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing detailsUpdate metadata base URI, extension, contract URI and freezing details
     /// @param target target contract to update metadata for
     /// @param metadataBase new base URI to update metadata with
-    /// @param metadataBaseCollective new baseCollective URI to update metadata with
     /// @param metadataExtension new extension to append to base metadata URI
     /// @param freezeAt time to freeze the contract metadata at (set to 0 to disable)
     function updateMetadataBaseWithDetails(
         address target,
         string memory metadataBase,
-        string memory metadataBaseCollective,
         string memory metadataExtension,
         string memory newContractURI,
         uint256 freezeAt
-    ) external requireSenderAdmin(target) {
+    ) external {
         _updateMetadataDetails(
             target,
             metadataBase,
-            metadataBaseCollective,
             metadataExtension,
             newContractURI,
             freezeAt
@@ -124,15 +93,12 @@ contract Cre8orsCollectiveMetadataRenderer is
     }
 
     /// @notice Internal metadata update function
-    /// @param target target contract to update metadata for
     /// @param metadataBase Base URI to update metadata for
-    /// @param metadataBaseCollective BaseCollective URI to update metadata for
     /// @param metadataExtension Extension URI to update metadata for
     /// @param freezeAt timestamp to freeze metadata (set to 0 to disable freezing)
     function _updateMetadataDetails(
         address target,
         string memory metadataBase,
-        string memory metadataBaseCollective,
         string memory metadataExtension,
         string memory newContractURI,
         uint256 freezeAt
@@ -143,7 +109,6 @@ contract Cre8orsCollectiveMetadataRenderer is
 
         metadataBaseByContract[target] = MetadataURIInfo({
             base: metadataBase,
-            baseCollective: metadataBaseCollective,
             extension: metadataExtension,
             contractURI: newContractURI,
             freezeAt: freezeAt
@@ -151,7 +116,6 @@ contract Cre8orsCollectiveMetadataRenderer is
         emit MetadataUpdated({
             target: target,
             metadataBase: metadataBase,
-            metadataBaseCollective: metadataBaseCollective,
             metadataExtension: metadataExtension,
             contractURI: newContractURI,
             freezeAt: freezeAt
@@ -176,12 +140,11 @@ contract Cre8orsCollectiveMetadataRenderer is
         MetadataURIInfo memory info = metadataBaseByContract[msg.sender];
 
         if (bytes(info.base).length == 0) revert();
-        string memory base = tokenId <= 88 ? info.base : info.baseCollective;
 
         return
             string(
                 abi.encodePacked(
-                    base,
+                    info.base,
                     Strings.toString(tokenId),
                     info.extension
                 )
